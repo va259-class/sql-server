@@ -113,3 +113,77 @@ where p.ProductName = 'Chai'
 order by o.OrderDate
 
 select ProductName from Products order by ProductName
+
+--Veritabanýndaki tüm kiþileri listeleme
+select ContactName as FullName, Phone, 'C' as Type from Customers
+union
+select FirstName + ' ' + LastName, HomePhone, 'E' from Employees
+union
+select ContactName, Phone, 'S' from Suppliers
+
+--Adý C ile baþlayan ürünler
+select ProductName, UnitPrice, UnitsInStock from Products
+where ProductName like 'C%'
+
+select * from Customers where CustomerID = 'BERGS'
+
+select 
+	o.OrderID, 
+	format(o.OrderDate, 'yyyy-MM-dd') as OrderDate, 
+	e.FirstName + ' ' + e.LastName as Employee 
+from Orders o
+inner join Employees e on e.EmployeeID = o.EmployeeID
+where CustomerID = 'BERGS'
+
+select 
+	p.ProductName, 
+	od.UnitPrice, 
+	od.Quantity, 
+	od.Discount,
+	od.UnitPrice * od.Quantity as SubTotal
+from [Order Details] od
+inner join Products p on od.ProductID = p.ProductID
+where od.OrderID = 10524
+-- Aggregate Function
+select 
+	sum(od.UnitPrice * od.Quantity) as Total
+from [Order Details] od
+inner join Products p on od.ProductID = p.ProductID
+where od.OrderID = 10524
+
+-- en yüksek fiyat
+select max(UnitPrice) from Products
+
+-- en düþük fiyat
+select min(UnitPrice) from Products
+
+-- ortalama fiyat
+select avg(UnitPrice) from Products
+
+-- depodaki toplam stok bedeli
+select sum(UnitPrice * UnitsInStock) as Total
+from Products
+
+-- Firmalarýn sipariþ adetleri
+select CustomerID, count(CustomerID) as OrderCount from Orders
+group by CustomerID
+order by OrderCount desc
+
+-- 10'dan fazla sipariþ veren firmalar
+select CustomerID, count(CustomerID) as OrderCount from Orders
+group by CustomerID
+having count(CustomerID) > 10 -- aggregate function için where anlamýna gelir
+order by OrderCount desc
+-- Firma adýna göre gruplansýn
+select c.CompanyName, count(0) as OrderCount 
+from Orders o
+inner join Customers c on o.CustomerID = c.CustomerID
+group by c.CompanyName
+having count(0) > 10
+order by OrderCount desc
+
+-- Hangi tedarikçi bize kaç ürün getiriyor
+select s.CompanyName, count(0) as ProductCount from Suppliers s
+inner join Products p on s.SupplierID = p.SupplierID
+group by s.CompanyName
+order by 2 desc
