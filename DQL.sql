@@ -320,3 +320,31 @@ from [Order Details] od
 inner join Orders o on od.OrderID = o.OrderID
 inner join Employees e on o.EmployeeID = e.EmployeeID
 group by e.Country
+
+-- JOIN KULLANIMI
+
+select p.ProductName, c.CategoryName
+from Products p
+inner join Categories c on p.CategoryID = c.CategoryID
+
+select p.ProductName, c.CategoryName
+from Products p
+right join Categories c on p.CategoryID = c.CategoryID
+
+-- sadece soldaki tabloyu kesin getirir, saðdaki tablo eþleþirse doldurur
+select p.ProductName, c.CategoryName
+from Products p
+left join Categories c on p.CategoryID = c.CategoryID
+
+-- inner join ile ayný
+select p.ProductName, c.CategoryName
+from Products p
+join Categories c on p.CategoryID = c.CategoryID
+
+select * from Products --Teapot
+select * from Suppliers
+select * from Categories
+
+select ProductName, UnitPrice from Products with(nolock)
+	where CategoryID = 1
+	order by UnitPrice
