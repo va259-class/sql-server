@@ -65,6 +65,9 @@ values
 --- çalýþan ekleyin
 insert into Employees (FirstName, LastName, HomePhone, City, Country, BirthDate, HireDate)
 values ('Bastian', 'Fülkrük', '+49 123-4566-98', 'Berlin', 'Germany', '1973-10-25', '2006-02-19')
+
+insert into Employees (FirstName, LastName, HomePhone, City, Country, BirthDate, HireDate)
+values ('Vladimr', 'Dokumov', '+7 45-109-980', 'Moscow', 'Russia', '1978-05-12', '2006-08-03')
 --- eklediðiniz müþteriye günün tarihinde bir sipariþ oluþturun
 -- Çalýþan => Bastian: 10
 -- Müþteri => CANPE
@@ -105,6 +108,7 @@ from Products p
 inner join [Order Details] od on p.ProductID = od.ProductID
 where od.OrderID = 11078
 
+-- Çalýþan sorgu üzerinden Person adýnda bir tablo oluþur
 select FullName, Phone, [Type]
 into Persons from
 (
@@ -137,6 +141,4 @@ SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED
 begin tran
 update Categories set CategoryName = 'Glassware'
 select * from Categories
-
-
 rollback tran

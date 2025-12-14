@@ -348,3 +348,38 @@ select * from Categories
 select ProductName, UnitPrice from Products with(nolock)
 	where CategoryID = 1
 	order by UnitPrice
+
+-- Common Table Expression
+with sp as
+(
+	select SupplierID as ID, CompanyName as Name
+	from Suppliers 
+	where Country = 'Germany'
+)
+
+select p.ProductName, sp.Name from Products p
+inner join sp on p.SupplierID = sp.ID
+
+-- Sample 2
+with sp as
+(
+	select SupplierID as ID, CompanyName as Name
+	from Suppliers 
+	where Country = 'Germany'
+),
+pr as
+(
+	select SupplierID, ProductName as Name
+	from Products 
+	where Discontinued = 0 and UnitsInStock > 0
+)
+
+select pr.Name, sp.Name as Company from pr
+inner join sp on pr.SupplierID = sp.ID
+
+---
+select p.ProductName as Name, s.CompanyName as Company from Products p
+inner join Suppliers s on p.SupplierID = s.SupplierID
+where s.Country = 'Germany' and p.Discontinued = 0 and p.UnitsInStock > 0
+
+SET STATISTICS TIME OFF
