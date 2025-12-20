@@ -1,16 +1,16 @@
--- DML: Data Manipulation Language
+ï»¿-- DML: Data Manipulation Language
 -- CREATE, ALTER, DROP, etc
 
 
--- master veritabanýnda çalýþtýrýlmalý
+-- master veritabanÄ±nda Ã§alÄ±ÅŸtÄ±rÄ±lmalÄ±
 use master
 restore database Northwind
-FROM DISK = '/var/opt/mssql/data/Northwind.bak'
+FROM DISK = '/var/opt/mssql/data/backups/Northwind.bak'
 WITH REPLACE
 
---- Personelin izinlerinin tutulacaðý bir tablo
+--- Personelin izinlerinin tutulacaÄŸÄ± bir tablo
 
---KISA HALÝ
+--KISA HALÄ°
 --create table EmployeeVacations
 --(
 --	VacationID int not null primary key identity(1,1),
@@ -40,11 +40,11 @@ create table EmployeeVacations
 )
 
 -- CONSTRAINTS
--- Primary Key : Tablodaki satýrlarý birbirinden ayýrmamýzý saðlayan esas kolon özelliði veren kýsýtlamadýr
--- Not Null    : 'Hücre insert ve update edilirken NULL deðer kabul edemez' kýsýtlamasýný uygular
--- Foreign Key : Hücrenin deðerinin esasýnda baþka bir tabloda iþaret edilen bir hücreyi referans alýnmasýný saðlayan kýsýtlamadýr.
--- Default     : Hücrenin insert anýnda boþ geçilmesi halinde alacaðý deðerin belirleyen kýsýtlamadýr.
--- Check       : Hücrenin deðerinin baþka deðerlere ve koþullara baðlý kalarak ayarlanmasý kýsýtýdýr.
+-- Primary Key : Tablodaki satÄ±rlarÄ± birbirinden ayÄ±rmamÄ±zÄ± saÄŸlayan esas kolon Ã¶zelliÄŸi veren kÄ±sÄ±tlamadÄ±r
+-- Not Null    : 'HÃ¼cre insert ve update edilirken NULL deÄŸer kabul edemez' kÄ±sÄ±tlamasÄ±nÄ± uygular
+-- Foreign Key : HÃ¼crenin deÄŸerinin esasÄ±nda baÅŸka bir tabloda iÅŸaret edilen bir hÃ¼creyi referans alÄ±nmasÄ±nÄ± saÄŸlayan kÄ±sÄ±tlamadÄ±r.
+-- Default     : HÃ¼crenin insert anÄ±nda boÅŸ geÃ§ilmesi halinde alacaÄŸÄ± deÄŸerin belirleyen kÄ±sÄ±tlamadÄ±r.
+-- Check       : HÃ¼crenin deÄŸerinin baÅŸka deÄŸerlere ve koÅŸullara baÄŸlÄ± kalarak ayarlanmasÄ± kÄ±sÄ±tÄ±dÄ±r.
 
 insert into EmployeeVacations
 (EmployeeID, StartDate, EndDate, Note)
@@ -76,8 +76,8 @@ create table ProductPriceHistory
 insert into ProductPriceHistory (ProductID, Price, UpdatedDate)
 select ProductID, UnitPrice, dateadd(month, -6, getdate()) from Products where Discontinued = 0
 
-delete from ProductPriceHistory -- tüm kayýtlarý siler
-truncate table ProductPriceHistory -- tüm kayýtlarý indexleri ve identity seed dahil yok eder
+delete from ProductPriceHistory -- tÃ¼m kayÄ±tlarÄ± siler
+truncate table ProductPriceHistory -- tÃ¼m kayÄ±tlarÄ± indexleri ve identity seed dahil yok eder
 
 update Products set UnitPrice = 20.50 where ProductID = 1
 
@@ -85,11 +85,11 @@ insert into ProductPriceHistory
 values (1, 20.50, getdate())
 
 -- Alerts
--- ÖDEV
+-- Ã–DEV
 
 ---- VIEW
---- Varolan farklý kaynaklardaki veya özelleþtirilmiþ sorgulardaki veriler
---- tablo gibi okumamýz saðlar
+--- Varolan farklÄ± kaynaklardaki veya Ã¶zelleÅŸtirilmiÅŸ sorgulardaki veriler
+--- tablo gibi okumamÄ±z saÄŸlar
 GO
 CREATE VIEW PeopleInSystem
 AS
@@ -138,6 +138,246 @@ go
 select * from SpanishCustomersForLetter
 
 --- TRIGGER
+alter table Categories
+add ModifiedAt datetime --default (getdate())
+
+alter table Categories
+add constraint df_ModifiedAt default (getdate()) for ModifiedAt
+
+insert into Categories (CategoryName, Description)
+values ('Home Stuff', 'Things that are used for house errands')
+
+update Categories set Description = 'Kitchen and bathroom tools'
+where CategoryID = 9
+
+select * from Categories
+
+--  TRIGGER 
+
+-- insert, update, delete sorgularÄ±nÄ±n Ã§alÄ±ÅŸtÄ±ÄŸÄ± anda
+-- bu sorgularÄ±n Ã§alÄ±ÅŸmasÄ±na mÃ¼dahale edilme iÅŸidir.
+
+-- Bilinmesi gereken: Tabloya mÃ¼dahale esnasÄ±nda inserted ve deleted
+-- adÄ±nda iki adet trigger Ã¶zelinde geÃ§ici tablonun olmasÄ±
+go
+create trigger tr_SetModifiedAt on Categories
+after update as 
+begin
+	update Categories set ModifiedAt = getdate() 
+	from inserted
+	where Categories.CategoryID = inserted.CategoryID
+end 
+
+go
+create trigger tr_CancelDelete on Categories
+instead of delete
+as
+begin 
+	print 'Categoriy deletion is prevented!'
+end
+
+delete from Categories where CategoryID = 15
+
+go
+alter trigger tr_CancelDelete on Categories
+instead of delete
+as
+begin 
+	print 'Category deletion is prevented!'
+end
+
+-- Ã–RNEK:
+-- Order Details iÃ§inde bir satÄ±ÅŸ kalemi oluÅŸturulunca
+-- Product stoÄŸu da etkilensin
+go
+create trigger tr_UpdateStocks on [Order Details]
+after insert
+as 
+begin
+	update Products 
+	set UnitsInStock = UnitsInStock - inserted.Quantity,
+		UnitsOnOrder = UnitsOnOrder + inserted.Quantity
+	from inserted
+	where Products.ProductID = inserted.ProductID
+end
+
+insert into Orders 
+(CustomerID, EmployeeID, OrderDate, RequiredDate, Freight)
+values
+('VEKAK', 11, '2026-04-01', '2026-04-03', 2.12)
+
+select top 1 OrderID from Orders order by OrderID desc
+
+insert into [Order Details]
+values (11080, 93, 9.98, 3, 0)
+
+insert into [Order Details]
+values (11080, 94, 9.88, 2, 0)
 --- INDEX
+
+ALTER TABLE Employees
+ADD EMail varchar(32) null
+
+-- tÃ¼m email alanlarÄ± atandÄ±
+ALTER TABLE Employees
+ALTER COLUMN EMail varchar(32) not null
+
+select * from Employees
+
+insert into Employees 
+(FirstName, LastName, EMail, HomePhone, City, Country, BirthDate, HireDate)
+values 
+('Can', 'Perk', 'can@northwind.com', '+90 555-55-55', 'Ankara', 'TÃ¼rkiye', '1976-02-20', '2006-04-29')
+
+delete from Employees where EmployeeID >= 13
+
+go
+create unique index idx_Employee_Mail
+on Employees(EMail)
+
+--ArtÄ±k aynÄ± mail adresine sahip iki kayÄ±t olamaz!!!!!
+go 
+create index idx_FirstName on Employees(FirstName)
+
+-- Burada kritik olan
+select * from Employees where FirstName = 'Can'
 --- FUNCTION
+go
+create function simdi()
+returns datetime
+as
+begin
+	return getdate()
+end
+go
+select dbo.simdi()
+
+go
+create function youngestEmployee()
+returns table
+as 
+return 
+(
+	select top 1 FirstName + ' ' + LastName as FullName, BirthDate
+	from Employees order by BirthDate desc
+)
+
+select * from dbo.youngestEmployee()
+
+go
+create function getOrderDetailFromId(@id int)
+returns table
+as
+return
+(
+	select p.ProductName, od.UnitPrice, od.Quantity
+	from [Order Details] od
+	inner join Products p on p.ProductID = od.ProductID
+	where od.OrderID = @id
+)
+
+select * from getOrderDetailFromId(11080)
+
+-- C# Equivalent
+-- public DateTime simdi()
+-- {
+--	   return DateTime.Now;
+-- }
+
+-- var a = simdi();
 --- STORED PROCEDURE
+go
+create procedure sp_EmployeeOrderPerformanceByYear
+	@empId int,
+	@year int
+as
+begin
+	select o.OrderDate, sum(od.UnitPrice * od.Quantity) as Total
+	from Orders o
+	inner join [Order Details] od on o.OrderID = od.OrderID
+	where o.EmployeeID = @empId and datepart(year, o.OrderDate) = @year
+	group by o.OrderDate
+	order by o.OrderDate
+end
+
+exec sp_EmployeeOrderPerformanceByYear 1, 1997
+
+go
+alter procedure sp_EmployeeOrderPerformanceByYear
+	@empId int,
+	@year int
+as
+begin
+	declare @fullName varchar(32)
+	set @fullName = (select FirstName + ' ' + LastName
+					 from Employees
+					 where EmployeeID = @empId)
+			
+	print @fullName + ' iÃ§in sipariÅŸler listelendi'
+
+	select o.OrderDate, sum(od.UnitPrice * od.Quantity) as Total
+	from Orders o
+	inner join [Order Details] od on o.OrderID = od.OrderID
+	where o.EmployeeID = @empId and datepart(year, o.OrderDate) = @year
+	group by o.OrderDate
+	order by o.OrderDate
+end
+exec sp_EmployeeOrderPerformanceByYear 1, 1997
+
+drop trigger tr_UpdateStocks
+
+go
+create procedure sp_createSafeOrder
+	@orderId int,
+	@productId int,
+	@unitPrice money,
+	@quantity smallint
+as 
+begin 
+	begin transaction
+		insert into [Order Details]
+		values(@orderId, @productId, @unitPrice, @quantity, 0)
+
+		update Products 
+		set UnitsInStock = UnitsInStock - @quantity,
+			UnitsOnOrder = UnitsOnOrder + @quantity
+		where ProductID = @productId
+
+		declare @stock int
+		set @stock = (select UnitsInStock 
+					  from Products 
+					  where ProductID = @productId)
+
+		if (@stock < 0) 
+		begin 
+			rollback transaction;
+			throw 54000, 'Stok Yetersiz', 1;
+		end
+				
+
+	commit transaction
+end
+
+go
+exec sp_createSafeOrder 11080, 92, 207.45, 1
+
+select * from [Order Details] where OrderID = 11080
+
+--Ã‡ALIÅžMAZ!!
+exec sp_createSafeOrder 11080, 96, 18.30, 10
+-- Ã‡ALIÅžIR â¤
+exec sp_createSafeOrder 11080, 96, 18.30, 8
+
+-- Ã–DEV : zaten var olan sipariÅŸ eklenmek istenirse update etsin
+-- Ã–DEV: Ã¼rÃ¼n fiyatÄ± vermeye gerek yok zaten gÃ¼ncel fiyattan satÄ±lÄ±yor
+
+begin transaction
+	insert into Employees 
+	(FirstName, LastName, EMail, HomePhone, City, Country, BirthDate, HireDate)
+	values 
+	('Can', 'Perk', 'can2@northwind.com', '+90 555-55-55', 'Ankara', 'TÃ¼rkiye', '1976-02-20', '2006-04-29')
+
+	select * from Employees
+rollback transaction
+
+select * from Employees
