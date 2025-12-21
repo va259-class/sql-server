@@ -1,6 +1,8 @@
 ﻿-- DML: Data Manipulation Language
 -- CREATE, ALTER, DROP, etc
-
+use Northwind
+alter database Northwind 
+set offline with rollback immediate
 
 -- master veritabanında çalıştırılmalı
 use master
